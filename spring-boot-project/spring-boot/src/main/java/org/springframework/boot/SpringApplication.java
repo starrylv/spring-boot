@@ -316,7 +316,8 @@ public class SpringApplication {
 			context = createApplicationContext();
 			exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
-			//主要是调用所有初始化类的 initialize 方法
+			//主要是调用所有初始化类的 initialize 方法，loadbeandefinetion
+			//loadcontext
 			prepareContext(context, environment, listeners, applicationArguments, printedBanner);
 			//初始化 Spring 容器
 			refreshContext(context);
@@ -353,12 +354,15 @@ public class SpringApplication {
 		//配置环境
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
 		ConfigurationPropertySources.attach(environment);
+		//通知listener环境已准备好
 		listeners.environmentPrepared(environment);
+		//绑定 environment 到 SpringApplication 上
 		bindToSpringApplication(environment);
 		if (!this.isCustomEnvironment) {
 			environment = new EnvironmentConverter(getClassLoader()).convertEnvironmentIfNecessary(environment,
 					deduceEnvironmentClass());
 		}
+		//如果有 attach 到 environment 上的 MutablePropertySources ，则添加到 environment 的 PropertySource 中。
 		ConfigurationPropertySources.attach(environment);
 		return environment;
 	}
@@ -378,13 +382,16 @@ public class SpringApplication {
 			SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments, Banner printedBanner) {
 		context.setEnvironment(environment);
 		postProcessApplicationContext(context);
+		//初始化ApplicationContextInitializer
 		applyInitializers(context);
+		//通知listener context 准备好
 		listeners.contextPrepared(context);
 		if (this.logStartupInfo) {
 			logStartupInfo(context.getParent() == null);
 			logStartupProfileInfo(context);
 		}
 		// Add boot specific singleton beans
+		//设置 beanFactory 的属性
 		ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
 		beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
 		if (printedBanner != null) {
@@ -398,9 +405,11 @@ public class SpringApplication {
 			context.addBeanFactoryPostProcessor(new LazyInitializationBeanFactoryPostProcessor());
 		}
 		// Load the sources
+		//加载 BeanDefinition
 		Set<Object> sources = getAllSources();
 		Assert.notEmpty(sources, "Sources must not be empty");
 		load(context, sources.toArray(new Object[0]));
+		//通知listener context已加载
 		listeners.contextLoaded(context);
 	}
 
@@ -705,6 +714,7 @@ public class SpringApplication {
 		if (this.environment != null) {
 			loader.setEnvironment(this.environment);
 		}
+		//BeanDefinition 加载
 		loader.load();
 	}
 
